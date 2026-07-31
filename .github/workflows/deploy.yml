@@ -12,9 +12,9 @@ on:
           - stage
 
 jobs:
-  hello:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Say Hello
-        run: echo "Hello from GitHub Actions!"
+      - name: Print selected environment
+        run: echo "Selected environment ${{ inputs.environment }}"
