@@ -20,5 +20,8 @@ jobs:
     environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Print selected environment
         run: echo "Selected environment ${{github.event_name == 'push' && 'prod' || inputs.environment }}"
