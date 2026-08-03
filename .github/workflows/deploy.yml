@@ -4,7 +4,7 @@ run-name: Deploy to ${{ github.event_name == 'push' && 'prod' || inputs.environm
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
     inputs:
       environment:
