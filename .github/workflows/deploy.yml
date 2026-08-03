@@ -35,5 +35,11 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Deploy to Vercel
+        run: npx vercel deploy --prod -token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID}}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID}}
+
       - name: Print selected environment
         run: echo "Selected environment ${{github.event_name == 'push' && 'prod' || inputs.environment }}"
