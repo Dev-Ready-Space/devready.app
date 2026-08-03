@@ -13,7 +13,7 @@ function App() {
         <div>
           <h1>Get started</h1>
           <h3>This is Master</h3>
-          <h2>I can't push to master</h2>
+          <h2>This branch is going to merge to master</h2>
           <p>
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
           </p>
