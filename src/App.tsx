@@ -12,7 +12,6 @@ function App() {
         <div className="hero"></div>
         <div>
           <h1>Get started</h1>
-          <h3>This is Dev</h3>
           <p>
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
           </p>
