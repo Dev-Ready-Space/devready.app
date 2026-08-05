@@ -42,8 +42,8 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-build
-          path: dist/
+          name: vercel-build
+          path: ./vercel/output
 
   # ============================================================
   # 2. Deploy
@@ -62,23 +62,11 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: frontend-build
-          path: dist/
-
-      - name: Verify build artifact
-        run: |
-          echo "Contents of dist:"
-          ls -la dist
-          echo "Checking index.html:"
-          test -f dist/index.html
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          name: vercel-build
+          path: ./vercel/output
 
       - name: Deploy to Vercel
-        run: npx vercel deploy --prod --token=${{secrets.VERCEL_TOKEN}}
+        run: npx vercel deploy --prebuilt --prod --token=${{secrets.VERCEL_TOKEN}}
         env:
           VERCEL_ORG_ID: ${{secrets.VERCEL_ORG_ID}}
           VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID}}
