@@ -59,6 +59,17 @@ jobs:
       # --------------------------------------------------------
       # Pull Vercel project configuration
       # --------------------------------------------------------
+
+      - name: Link Vercel project
+        run: |
+          npx vercel link \
+            --yes \
+            --project="${VERCEL_PROJECT_ID}" \
+            --token="${VERCEL_TOKEN}"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Pull Vercel project configuration
         run: |
           npx vercel pull \
