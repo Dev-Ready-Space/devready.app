@@ -1,10 +1,12 @@
 name: Deploy Frontend
+
 run-name: Deploy to ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
 on:
   push:
     branches:
       - master
+
   workflow_dispatch:
     inputs:
       environment:
@@ -16,11 +18,14 @@ on:
           - stage
 
 jobs:
-  # ==========================================
+  # ============================================================
   # 1. BUILD JOB
-  # ==========================================
+  # ============================================================
   build:
+    name: Build Application
     runs-on: ubuntu-latest
+
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
       - name: Checkout code
@@ -30,56 +35,115 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build application
-        run: npm run build
+      # --------------------------------------------------------
+      # Get Vercel project configuration
+      # --------------------------------------------------------
 
-      # Upload build output and source files needed by Vercel
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifact
-          path: |
-            .
-            !.git
-            !node_modules
-          retention-days: 1
-
-  # ==========================================
-  # 2. DEPLOY JOB
-  # ==========================================
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
-
-    steps:
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifact
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+      - name: Clear Vercel Cache
+        run: rm -rf .vercel
 
       - name: Deploy to Vercel
+        run: npx vercel --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Pull Vercel project configuration
+        run: npx vercel pull --yes --environment=dev --token="${VERCEL_TOKEN}"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # --------------------------------------------------------
+      # Build using Vercel
+      #
+      # This creates:
+      #
+      # .vercel/
+      #   ├── project.json
+      #   └── output/
+      #
+      # The important directory is .vercel/output
+      # --------------------------------------------------------
+      - name: Build with Vercel
+        run: npx vercel build --token="${VERCEL_TOKEN}"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # --------------------------------------------------------
+      # Verify Vercel build output
+      # --------------------------------------------------------
+      - name: Verify Vercel build output
         run: |
-          ENVIRONMENT="${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
-          if [ "$ENVIRONMENT" = "prod" ]; then
-            npx vercel deploy --prod --token=$VERCEL_TOKEN
-          else
-            npx vercel deploy --token=$VERCEL_TOKEN
-          fi
+          echo "Contents of .vercel:"
+          ls -la .vercel
+
+          echo ""
+          echo "Contents of .vercel/output:"
+          ls -la .vercel/output
+
+          echo ""
+          echo "Vercel output files:"
+          find .vercel/output -maxdepth 3 -type f
+
+      # --------------------------------------------------------
+      # Upload ONLY the Vercel deployment output
+      # --------------------------------------------------------
+      - name: Upload Vercel build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vercel-build
+          path: .vercel/output
+          retention-days: 1
+
+  # ============================================================
+  # 2. DEPLOY JOB
+  # ============================================================
+  deploy:
+    name: Deploy to Vercel
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
+
+    steps:
+      # --------------------------------------------------------
+      # Download the exact Vercel build output
+      # --------------------------------------------------------
+      - name: Download Vercel build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vercel-build
+          path: .vercel/output
+
+      # --------------------------------------------------------
+      # Verify downloaded artifact
+      # --------------------------------------------------------
+      - name: Verify downloaded artifact
+        run: |
+          echo "Contents of .vercel/output:"
+          ls -la .vercel/output
+
+          echo ""
+          echo "Vercel output files:"
+          find .vercel/output -maxdepth 3 -type f
+
+      # --------------------------------------------------------
+      # Deploy WITHOUT rebuilding
+      # --------------------------------------------------------
+      - name: Deploy prebuilt application
+        run: npx vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Print selected environment
-        run: echo "Successfully deployed to ${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
+        run: |
+          echo "Successfully deployed to ${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
