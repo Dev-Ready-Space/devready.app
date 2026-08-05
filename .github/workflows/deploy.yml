@@ -37,10 +37,18 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # Pull Vercel project settings (creates .vercel/project.json)
+      - name: Pull Vercel Environment Info
+        run: npx vercel pull --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       # Create Vercel's prebuilt output
       - name: Build with Vercel
         run: npx vercel build
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
@@ -56,15 +64,14 @@ jobs:
   # ============================================================
   deploy:
     name: Deploy to Vercel
-
-    # Deploy only after build succeeds
     needs: build
-
     runs-on: ubuntu-latest
-
     environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       # Download the exact build created by the Build job
       - name: Download Vercel Build Artifact
         uses: actions/download-artifact@v4
