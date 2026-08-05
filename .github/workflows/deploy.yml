@@ -1,10 +1,12 @@
 name: Deploy Frontend
+
 run-name: Deploy to ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
 on:
   push:
     branches:
       - master
+
   workflow_dispatch:
     inputs:
       environment:
@@ -17,7 +19,7 @@ on:
 
 jobs:
   # ============================================================
-  # 1. Build
+  # 1. BUILD
   # ============================================================
   build:
     name: Build Application
@@ -35,38 +37,44 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Application
-        run: npm run build
+      # Create Vercel's prebuilt output
+      - name: Build with Vercel
+        run: npx vercel build
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      # Save dist/ so the deploy job can use it
-      - name: Upload build artifact
+      # Save Vercel's build output
+      - name: Upload Vercel Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vercel-build
-          path: ./vercel/output
+          path: .vercel/output/
 
   # ============================================================
-  # 2. Deploy
+  # 2. DEPLOY
   # ============================================================
-
   deploy:
     name: Deploy to Vercel
 
-    # Deploy can only start after the build succeeds
+    # Deploy only after build succeeds
     needs: build
+
     runs-on: ubuntu-latest
 
-    environment: ${{github.event_name == 'push' && 'prod' || inputs.environment }}
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
-      - name: Download build artifact
+      # Download the exact build created by the Build job
+      - name: Download Vercel Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: vercel-build
-          path: ./vercel/output
+          path: .vercel/output/
 
+      # Deploy the prebuilt output
       - name: Deploy to Vercel
-        run: npx vercel deploy --prebuilt --prod --token=${{secrets.VERCEL_TOKEN}}
+        run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{secrets.VERCEL_ORG_ID}}
-          VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID}}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
