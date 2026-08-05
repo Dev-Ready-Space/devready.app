@@ -25,6 +25,8 @@ jobs:
     name: Build Application
     runs-on: ubuntu-latest
 
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
