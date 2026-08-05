@@ -15,15 +15,13 @@ on:
           - dev
           - stage
 
-jobs:
-  # ============================================================
-  # 1. BUILD
-  # ============================================================
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -32,58 +30,78 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      # Pull project settings & env vars from Vercel
-      - name: Pull Vercel Environment
-        run: npx vercel pull --yes --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Install Vercel CLI
+        run: npm install --global vercel
 
-      # Build into Vercel's prebuilt format (.vercel/output/)
+      # Remove stale .vercel folder if it exists (from repo or previous runs)
+      - name: Clean up old .vercel
+        run: rm -rf .vercel
+
+      # Pull the project settings and environment variables
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+
       - name: Build with Vercel
-        run: npx vercel build
+        run: vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
 
-      # Pass the build output to the deploy job
-      - name: Upload Build Artifact
+      - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
-          name: vercel-build
-          path: .vercel/output/
+          name: vercel-output
+          path: .vercel/output
 
-  # ============================================================
-  # 2. DEPLOY
-  # ============================================================
   deploy:
-    name: Deploy to Vercel
-    needs: build
     runs-on: ubuntu-latest
+    needs: build
     environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
-      # Checkout is still needed for vercel.json, package.json, etc.
       - name: Checkout code
         uses: actions/checkout@v5
+        # Required for configuration files (package.json, vercel.json, etc.)
 
-      - name: Download Build Artifact
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      # Remove stale .vercel if present
+      - name: Clean up old .vercel
+        run: rm -rf .vercel
+
+      # Pull settings again in deploy job (needed for the deployment context)
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+
+      - name: Download build output
         uses: actions/download-artifact@v4
         with:
-          name: vercel-build
-          path: .vercel/output/
+          name: vercel-output
+          path: .vercel/output
 
-      # Deploy the prebuilt output without rebuilding
-      - name: Deploy to Vercel
-        run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to Vercel (prebuilt)
+        run: vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
 
       - name: Print selected environment
         run: echo "Selected environment ${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
