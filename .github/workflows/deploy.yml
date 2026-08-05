@@ -43,8 +43,18 @@ jobs:
       # --------------------------------------------------------
       # Remove any existing Vercel configuration
       # --------------------------------------------------------
+
       - name: Clear Vercel configuration
-        run: rm -rf .vercel
+        run: |
+          rm -rf .vercel
+          echo "Checking .vercel..."
+          if [ -d ".vercel" ]; then
+            echo ".vercel still exists"
+            ls -la .vercel
+            exit 1
+          else
+            echo ".vercel successfully removed"
+          fi
 
       # --------------------------------------------------------
       # Pull Vercel project configuration
