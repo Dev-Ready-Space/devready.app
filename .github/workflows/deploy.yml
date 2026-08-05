@@ -48,9 +48,9 @@ jobs:
         run: rm -rf .vercel
 
       - name: Deploy to Vercel
-        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel --token=${{ secrets.VERCEL_TOKEN }}
       - name: Pull Vercel project configuration
-        run: npx vercel pull --yes --environment=stage --token="${VERCEL_TOKEN}"
+        run: npx vercel pull --yes --environment=dev --token="${VERCEL_TOKEN}"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
