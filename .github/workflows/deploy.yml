@@ -22,6 +22,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -44,7 +47,7 @@ jobs:
 
       # Pull the project settings and environment variables
       - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
