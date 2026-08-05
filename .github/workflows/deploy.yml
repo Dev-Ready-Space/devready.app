@@ -49,6 +49,8 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Remove existing Vercel configuration
+        run: rm -rf .vercel
       # Pull Vercel project settings (creates .vercel/project.json)
       - name: Pull Vercel Environment Info
         run: npx vercel pull --yes --token=${{ secrets.VERCEL_TOKEN }}
