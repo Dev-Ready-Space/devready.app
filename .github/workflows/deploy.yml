@@ -16,18 +16,21 @@ on:
           - stage
 
 jobs:
-  deploy:
+  # ==========================================
+  # 1. BUILD JOB
+  # ==========================================
+  build:
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -35,11 +38,48 @@ jobs:
       - name: Build application
         run: npm run build
 
+      # Upload build output and source files needed by Vercel
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: |
+            .
+            !.git
+            !node_modules
+          retention-days: 1
+
+  # ==========================================
+  # 2. DEPLOY JOB
+  # ==========================================
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
+
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Deploy to Vercel
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID}}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID}}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          ENVIRONMENT="${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
+          if [ "$ENVIRONMENT" = "prod" ]; then
+            npx vercel deploy --prod --token=$VERCEL_TOKEN
+          else
+            npx vercel deploy --token=$VERCEL_TOKEN
+          fi
 
       - name: Print selected environment
-        run: echo "Selected environment ${{github.event_name == 'push' && 'prod' || inputs.environment }}"
+        run: echo "Successfully deployed to ${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
