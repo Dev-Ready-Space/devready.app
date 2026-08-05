@@ -43,6 +43,12 @@ jobs:
       # --------------------------------------------------------
       # Get Vercel project configuration
       # --------------------------------------------------------
+
+      - name: Clear Vercel Cache
+        run: rm -rf .vercel
+
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
       - name: Pull Vercel project configuration
         run: npx vercel pull --yes --environment=stage --token="${VERCEL_TOKEN}"
         env:
