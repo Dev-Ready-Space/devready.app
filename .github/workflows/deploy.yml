@@ -41,16 +41,20 @@ jobs:
         run: npm ci
 
       # --------------------------------------------------------
-      # Get Vercel project configuration
+      # Remove any existing Vercel configuration
       # --------------------------------------------------------
-
-      - name: Clear Vercel Cache
+      - name: Clear Vercel configuration
         run: rm -rf .vercel
 
-      - name: Deploy to Vercel
-        run: npx vercel --yes --token=${{ secrets.VERCEL_TOKEN }}
+      # --------------------------------------------------------
+      # Pull Vercel project configuration
+      # --------------------------------------------------------
       - name: Pull Vercel project configuration
-        run: npx vercel pull --yes --environment=dev --token="${VERCEL_TOKEN}"
+        run: |
+          npx vercel pull \
+            --yes \
+            --environment=production \
+            --token="${VERCEL_TOKEN}"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -58,17 +62,11 @@ jobs:
 
       # --------------------------------------------------------
       # Build using Vercel
-      #
-      # This creates:
-      #
-      # .vercel/
-      #   ├── project.json
-      #   └── output/
-      #
-      # The important directory is .vercel/output
       # --------------------------------------------------------
       - name: Build with Vercel
-        run: npx vercel build --token="${VERCEL_TOKEN}"
+        run: |
+          npx vercel build \
+            --token="${VERCEL_TOKEN}"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -91,7 +89,7 @@ jobs:
           find .vercel/output -maxdepth 3 -type f
 
       # --------------------------------------------------------
-      # Upload ONLY the Vercel deployment output
+      # Upload Vercel deployment output
       # --------------------------------------------------------
       - name: Upload Vercel build artifact
         uses: actions/upload-artifact@v4
@@ -114,7 +112,7 @@ jobs:
 
     steps:
       # --------------------------------------------------------
-      # Download the exact Vercel build output
+      # Download exact Vercel build output
       # --------------------------------------------------------
       - name: Download Vercel build artifact
         uses: actions/download-artifact@v4
@@ -135,10 +133,14 @@ jobs:
           find .vercel/output -maxdepth 3 -type f
 
       # --------------------------------------------------------
-      # Deploy WITHOUT rebuilding
+      # Deploy prebuilt output
       # --------------------------------------------------------
       - name: Deploy prebuilt application
-        run: npx vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
+        run: |
+          npx vercel deploy \
+            --prebuilt \
+            --prod \
+            --token="${VERCEL_TOKEN}"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
