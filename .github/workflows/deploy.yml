@@ -15,14 +15,9 @@ on:
           - dev
           - stage
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
     environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
 
     steps:
@@ -33,78 +28,18 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel
+      - name: Build application
+        run: npm run build
 
-      # Remove stale .vercel folder if it exists (from repo or previous runs)
-      - name: Clean up old .vercel
-        run: rm -rf .vercel
-
-      # Pull the project settings and environment variables
-      - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to Vercel
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
-
-      - name: Build with Vercel
-        run: vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
-
-      - name: Upload build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: vercel-output
-          path: .vercel/output
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment: ${{ github.event_name == 'push' && 'prod' || inputs.environment }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        # Required for configuration files (package.json, vercel.json, etc.)
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: "npm"
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel
-
-      # Remove stale .vercel if present
-      - name: Clean up old .vercel
-        run: rm -rf .vercel
-
-      # Pull settings again in deploy job (needed for the deployment context)
-      - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
-
-      - name: Download build output
-        uses: actions/download-artifact@v4
-        with:
-          name: vercel-output
-          path: .vercel/output
-
-      - name: Deploy to Vercel (prebuilt)
-        run: vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID}}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID}}
 
       - name: Print selected environment
-        run: echo "Selected environment ${{ github.event_name == 'push' && 'prod' || inputs.environment }}"
+        run: echo "Selected environment ${{github.event_name == 'push' && 'prod' || inputs.environment }}"
