@@ -30,7 +30,26 @@ jobs:
         run: npm run lint
 
       - name: Run Tests
-        run: npm test
+        run: npm run test:coverage
+
+      # Upload coverage report to Codecov
+      - name: Display coverage summary
+        run: |
+          echo "## Coverage Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8')); const total = data.total; const lines = ['| Metric | Coverage |', '|--------|----------|', '| Statements | ' + total.statements.pct + '% |', '| Branches | ' + total.branches.pct + '% |', '| Functions | ' + total.functions.pct + '% |', '| Lines | ' + total.lines.pct + '% |']; process.stdout.write(lines.join('\\n') + '\\n');" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage summary was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
 
       - name: Build Application
         run: npm run build

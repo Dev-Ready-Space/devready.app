@@ -1,10 +1,29 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { expect, test } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
 import HelloWorld from "./HelloWorld";
 
-test("renders initial greeting", () => {
-  const markup = renderToStaticMarkup(<HelloWorld name="Vitest" />);
+test("renders and updates the greeting", () => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
 
-  expect(markup).toContain("Hello Vitest x1!");
-  expect(markup).toContain("Increment");
+  act(() => {
+    root.render(<HelloWorld name="Vitest" />);
+  });
+
+  expect(container.textContent).toContain("Hello Vitest x1!");
+
+  const button = container.querySelector("button");
+  expect(button).not.toBeNull();
+
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+
+  expect(container.textContent).toContain("Hello Vitest x2!");
+
+  root.unmount();
+  container.remove();
 });
