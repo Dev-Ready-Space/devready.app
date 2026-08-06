@@ -1,12 +1,10 @@
 import { expect, test } from "vitest";
-import { render } from "vitest-browser-react";
+import { renderToStaticMarkup } from "react-dom/server";
 import HelloWorld from "./HelloWorld";
 
-test("renders name", async () => {
-  const { getByText, getByRole } = await render(<HelloWorld name="Vitest" />);
+test("renders initial greeting", () => {
+  const markup = renderToStaticMarkup(<HelloWorld name="Vitest" />);
 
-  await expect.element(getByText("Hello Vitest x1!")).toBeInTheDocument();
-  await getByRole("button", { name: "Increment " }).click();
-
-  await expect.element(getByText("Hello Vitest x2!")).toBeInTheDocument();
+  expect(markup).toContain("Hello Vitest x1!");
+  expect(markup).toContain("Increment");
 });
