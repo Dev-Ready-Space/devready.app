@@ -17,6 +17,10 @@ on:
           - dev
           - stage
 
+concurrency:
+  group: frontend-${{github.ref}}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================
   # 1. BUILD JOB
