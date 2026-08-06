@@ -12,8 +12,7 @@ function App() {
         <div className="hero"></div>
         <div>
           <h1>Get started</h1>
-          <h3>This is Master</h3>
-          <h2>I can't push to master</h2>
+          <h2>Gemini Won the race.</h2>
           <p>
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
           </p>
